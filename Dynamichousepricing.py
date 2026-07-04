@@ -1,151 +1,42 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 
 # -------------------------------------------------------
-# PAGE CONFIG
+# PAGE CONFIGURATION & STYLING
 # -------------------------------------------------------
 st.set_page_config(
-    page_title="House Price Predictor AI",
+    page_title="AI Property Valuation Engine",
     page_icon="🏡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# -------------------------------------------------------
-# ADVANCED CUSTOM CSS (SaaS Dashboard Aesthetic)
-# -------------------------------------------------------
 st.markdown("""
 <style>
-    /* Google Font Import */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Main Container Padding */
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 3rem;
-        max-width: 1300px;
-    }
-
-    /* Hero Banner */
+    .block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1350px; }
+    
     .hero {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #3B82F6 100%);
-        border-radius: 24px;
-        padding: 48px 32px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #2563EB 100%);
+        border-radius: 24px; padding: 42px 32px; color: white; text-align: center;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); margin-bottom: 2rem;
     }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 0.4rem; color: #FFFFFF; }
+    .hero p { font-size: 1.15rem; color: #94A3B8; max-width: 650px; margin: 0 auto; }
     
-    .hero h1 {
-        font-size: 3.2rem;
-        font-weight: 700;
-        letter-spacing: -0.05em;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(to right, #FFFFFF, #93C5FD);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .hero p {
-        font-size: 1.2rem;
-        color: #94A3B8;
-        font-weight: 400;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    /* Section Headers */
-    h3 {
-        font-weight: 600;
-        letter-spacing: -0.03em;
-        color: #1E293B;
-    }
-
-    /* Prediction Banner */
-    .prediction-box {
+    .prediction-card {
         background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        color: white;
-        padding: 36px 24px;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.25);
-        margin-top: 1rem;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: white; padding: 32px; border-radius: 20px; text-align: center;
+        box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.3); margin-bottom: 1.5rem;
     }
-    
-    .prediction-box p {
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        font-weight: 600;
-        margin-bottom: 0.2rem;
-        opacity: 0.9;
-    }
-    
-    .prediction-box h1 {
-        font-size: 3.5rem;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: -0.03em;
-    }
-    
-    .prediction-box span {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        font-weight: 400;
-    }
-
-    /* Custom Button Styling */
-    div.stButton > button {
-        width: 100%;
-        height: 52px;
-        background: #2563EB;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-    }
-    
-    div.stButton > button:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-    }
-
-    /* Streamlit Metric Cards Polish */
-    div[data-testid="stMetric"] {
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        padding: 16px 20px;
-        border-radius: 16px;
-        text-align: center;
-    }
-    
-    div[data-testid="stMetricLabel"] {
-        justify-content: center;
-        font-size: 0.85rem;
-        color: #64748B;
-        font-weight: 500;
-    }
-    
-    div[data-testid="stMetricValue"] {
-        justify-content: center;
-        color: #0F172A;
-        font-weight: 700;
-    }
+    .prediction-card p { text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; font-size: 0.9rem; opacity: 0.9; margin: 0; }
+    .prediction-card h1 { font-size: 3.4rem; font-weight: 700; margin: 8px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -154,209 +45,158 @@ st.markdown("""
 # -------------------------------------------------------
 st.markdown("""
 <div class="hero">
-    <h1>🏡 Real Estate Price AI</h1>
-    <p>Accurate, real-time property valuation powered by machine learning algorithms</p>
+    <h1>🏡 Multivariate Valuation Engine</h1>
+    <p>Predict real estate market prices dynamically using multi-feature machine learning</p>
 </div>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------
-# LOAD DATA & TRAIN MODEL
+# AUTOMATIC DATASET LOADING & PROCESSING
 # -------------------------------------------------------
 @st.cache_data
-def load_data():
-    # Fallback mock dataset generation if CSV is missing
+def load_and_preprocess_data():
     try:
-        return pd.read_csv("houseprice.csv")
+        df = pd.read_csv("houseprice.csv")
     except FileNotFoundError:
-        import numpy as np
+        # Fallback realistic multi-variable sample dataset
         np.random.seed(42)
-        mock_area = np.random.normal(2000, 750, 150).astype(int)
-        mock_area = np.clip(mock_area, 500, 7000)
-        mock_price = mock_area * 4500 + np.random.normal(500000, 200000, 150)
-        return pd.DataFrame({"area": mock_area, "price": np.clip(mock_price, 1500000, None)})
+        n = 250
+        area = np.random.normal(2200, 600, n).astype(int)
+        bedrooms = np.random.randint(1, 6, n)
+        bathrooms = np.random.randint(1, 4, n)
+        age = np.random.randint(0, 40, n)
+        price = (area * 320) + (bedrooms * 25000) + (bathrooms * 18000) - (age * 2200) + np.random.normal(150000, 45000, n)
+        df = pd.DataFrame({"area": area, "bedrooms": bedrooms, "bathrooms": bathrooms, "age_years": age, "price": price})
+    
+    # Clean missing values and isolate numerical features
+    df = df.dropna()
+    return df
 
-df = load_data()
-feature = df.columns[0]
-target = "price"
+df = load_and_preprocess_data()
 
-# Model Training
-X = df[[feature]]
-y = df[target]
+# Detect target column ('price' or last column)
+target_col = "price" if "price" in df.columns.str.lower() else df.columns[-1]
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+feature_cols = [c for c in numeric_cols if c != target_col]
+
+if not feature_cols:
+    st.error("No numerical feature columns found in the dataset to train the model.")
+    st.stop()
+
+# -------------------------------------------------------
+# MODEL TRAINING
+# -------------------------------------------------------
+X = df[feature_cols]
+y = df[target_col]
+
 model = LinearRegression()
 model.fit(X, y)
+r_squared = model.score(X, y)
 
 # -------------------------------------------------------
-# SIDEBAR
+# SIDEBAR: DATASET UPLOADER & OVERVIEW
 # -------------------------------------------------------
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/8201/8201314.png", width=64)
-    st.title("Model Dashboard")
-    st.caption("Linear Regression v1.0")
-    
+    st.title("📂 Dataset Controls")
+    uploaded_file = st.file_uploader("Upload Custom CSV Dataset", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file).dropna()
+        st.success("Custom dataset loaded successfully!")
+        st.rerun()
+        
     st.markdown("---")
-    st.subheader("⚙️ System Specs")
-    st.write("This algorithm evaluates property sizing against local historical sales data to project market value.")
-    
-    with st.expander("🛠️ Technology Stack"):
-        st.markdown("""
-        * **Frontend:** Streamlit
-        * **Computation:** Pandas, NumPy
-        * **ML Engine:** Scikit-Learn
-        * **Visuals:** Plotly Express
-        """)
-    st.markdown("---")
-    st.caption("Developed with precision UI/UX standards.")
+    st.subheader("📊 Model Diagnostics")
+    st.metric("Trained Features", len(feature_cols))
+    st.metric("Dataset Records", f"{len(df):,}")
+    st.metric("Model Accuracy (R²)", f"{r_squared * 100:.1f}%")
 
 # -------------------------------------------------------
-# MAIN DASHBOARD AREA
+# MAIN LAYOUT: DYNAMIC INPUTS & PREDICTION
 # -------------------------------------------------------
-col_input, col_stats = st.columns([5, 6], gap="large")
+col_inputs, col_results = st.columns([5, 7], gap="large")
 
-# --- LEFT COLUMN: USER INPUTS ---
-with col_input:
-    st.subheader("🛠️ Property Parameter")
+with col_inputs:
+    st.subheader("🛠️ Property Specifications")
+    st.caption("Adjust parameters detected directly from your dataset columns:")
     
-    # Custom vs Slider Toggle
-    input_method = st.radio(
-        "Select Input Style:",
-        ["🎯 Interactive Slider", "⌨️ Exact Custom Value"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    user_inputs = {}
     
-    min_val = int(df[feature].min())
-    max_val = int(df[feature].max())
-    mean_val = int(df[feature].mean())
-    
-    if "Slider" in input_method:
-        area = st.slider(
-            label=f"Total Area ({feature.title()})",
-            min_value=min_val,
-            max_value=max_val,
-            value=mean_val,
-            step=50,
-            help="Drag to adjust the property footprint."
-        )
-    else:
-        area = st.number_input(
-            label=f"Enter Exact Area ({feature.title()})",
-            min_value=100,
-            max_value=25000,
-            value=mean_val,
-            step=10,
-            help="Type your exact property dimensions directly."
-        )
+    # Dynamically build UI controls for every detected feature in the dataset
+    for col in feature_cols:
+        col_min = float(df[col].min())
+        col_max = float(df[col].max())
+        col_mean = float(df[col].mean())
+        
+        # Check if integer or continuous float
+        is_integer = np.array_equal(df[col], df[col].astype(int))
+        
+        if is_integer:
+            step_size = max(1, int((col_max - col_min) / 50))
+            user_inputs[col] = st.number_input(
+                label=f"📌 {col.replace('_', ' ').title()}",
+                min_value=int(col_min),
+                max_value=int(col_max * 2),
+                value=int(col_mean),
+                step=step_size
+            )
+        else:
+            step_size = (col_max - col_min) / 100.0
+            user_inputs[col] = st.number_input(
+                label=f"📌 {col.replace('_', ' ').title()}",
+                min_value=float(col_min),
+                max_value=float(col_max * 2.0),
+                value=float(col_mean),
+                step=float(step_size),
+                format="%.2f"
+            )
 
-    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-    predict_btn = st.button("Generate Valuation ⚡")
-
-# --- RIGHT COLUMN: DATASET STATS ---
-with col_stats:
-    st.subheader("📊 Market Baseline Data")
+with col_results:
+    st.subheader("💡 AI Valuation Estimate")
     
-    stat_col1, stat_col2 = st.columns(2)
-    with stat_col1:
-        st.metric("Analyzed Properties", f"{len(df):,}")
-        st.metric("Avg. Market Price", f"₹ {df[target].mean():,.0f}")
-    with stat_col2:
-        st.metric("Size Range", f"{min_val:,} - {max_val:,}")
-        st.metric("Price per Sq.Ft (Avg)", f"₹ {(df[target]/df[feature]).mean():,.0f}")
-
-# -------------------------------------------------------
-# PREDICTION DISPLAY
-# -------------------------------------------------------
-if predict_btn or area:
-    estimated_price = model.predict([[area]])[0]
-    
-    # Clamp prediction to zero if extreme negative values occur
-    estimated_price = max(0, estimated_price)
+    # Create input vector matching training column order
+    input_vector = pd.DataFrame([user_inputs])
+    prediction = max(0.0, model.predict(input_vector)[0])
     
     st.markdown(f"""
-    <div class="prediction-box">
-        <p>Estimated Market Valuation</p>
-        <h1>₹ {estimated_price:,.0f}</h1>
-        <span>Based on a footprint of <b>{area:,}</b> sq. ft.</span>
+    <div class="prediction-card">
+        <p>Predicted Market Value</p>
+        <h1>₹ {prediction:,.0f}</h1>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Feature Impact Breakdown Table
+    st.subheader("⚖️ Feature Weight Analysis")
+    impact_df = pd.DataFrame({
+        "Feature Attribute": [c.replace("_", " ").title() for c in feature_cols],
+        "Input Value": [user_inputs[c] for c in feature_cols],
+        "Model Weight (Coefficient)": [f"₹ {coef:,.2f}" for coef in model.coef_]
+    })
+    st.dataframe(impact_df, use_container_width=True, hide_index=True)
 
 # -------------------------------------------------------
-# VISUALIZATIONS & ML METRICS
+# VISUALIZATION & RAW DATA
 # -------------------------------------------------------
 st.markdown("---")
+st.subheader("📈 Multi-Feature Market Trends")
 
-col_chart, col_metrics = st.columns([7, 3], gap="large")
+selected_viz_col = st.selectbox("Select Feature to Plot against Price:", feature_cols)
 
-with col_chart:
-    st.subheader("📈 Market Price Trend & Regression Line")
-    
-    fig = px.scatter(
-        df,
-        x=feature,
-        y=target,
-        trendline="ols",
-        trendline_color_override="#EF4444",
-        color=target,
-        color_continuous_scale="Blues",
-        labels={feature: "Area (Sq. Ft.)", target: "Price (₹)"},
-        template="plotly_white"
-    )
-    
-    # Inject user's predicted point onto the chart
-    if area:
-        fig.add_scatter(
-            x=[area], 
-            y=[estimated_price],
-            mode="markers",
-            marker=dict(color="#10B981", size=14, line=dict(color="white", width=2)),
-            name="Your Property"
-        )
+fig = px.scatter(
+    df, x=selected_viz_col, y=target_col,
+    trendline="ols", trendline_color_override="#EF4444",
+    labels={selected_viz_col: selected_viz_col.replace("_", " ").title(), target_col: "Price (₹)"},
+    template="plotly_white", opacity=0.6
+)
 
-    fig.update_layout(
-        height=420,
-        margin=dict(l=10, r=10, t=20, b=10),
-        coloraxis_showscale=False,
-        hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+# Highlight active user prediction on chart
+fig.add_scatter(
+    x=[user_inputs[selected_viz_col]], y=[prediction],
+    mode="markers", name="Your Valuation",
+    marker=dict(color="#10B981", size=16, line=dict(color="white", width=2))
+)
 
-with col_metrics:
-    st.subheader("🧮 Model Parameters")
-    st.write("Mathematical weights underlying the prediction model:")
-    
-    st.metric(
-        label="Marginal Value (Slope)",
-        value=f"₹ {model.coef_[0]:,.2f}",
-        delta="Per Sq.Ft added"
-    )
-    
-    st.metric(
-        label="Base Value (Intercept)",
-        value=f"₹ {model.intercept_:,.2f}",
-        help="The baseline calculation value before area is accounted for."
-    )
-    
-    r_sq = model.score(X, y)
-    st.metric(
-        label="Model Accuracy ($R^2$)",
-        value=f"{r_sq * 100:.1f}%",
-        help="Proportion of the variance in house prices explained by the size of the house."
-    )
+fig.update_layout(height=430, margin=dict(l=10, r=10, t=10, b=10))
+st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------------------------------------
-# DATASET EXPLORER & FOOTER
-# -------------------------------------------------------
-with st.expander("📂 Explore Raw Training Dataset"):
-    st.dataframe(
-        df.style.format({target: "₹ {:,.0f}", feature: "{:,.0f}"}),
-        use_container_width=True,
-        height=250
-    )
-
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #94A3B8; font-size: 0.85rem;">
-    Powered by <b>Streamlit</b> & <b>Scikit-Learn</b> • Engineered with Precision UI/UX
-</div>
-""", unsafe_allow_html=True)
+with st.expander("📂 Inspect Raw Training Dataset"):
+    st.dataframe(df, use_container_width=True)
