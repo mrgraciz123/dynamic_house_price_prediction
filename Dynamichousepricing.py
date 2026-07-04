@@ -1,245 +1,266 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
-# --------------------------------------------------
-# Page Configuration
-# --------------------------------------------------
+# -------------------------------------------------------
+# PAGE CONFIG
+# -------------------------------------------------------
 
 st.set_page_config(
-    page_title="🏡 House Price Prediction",
-    page_icon="🏡",
+    page_title="House Price Prediction",
+    page_icon="🏠",
     layout="wide"
 )
 
-# --------------------------------------------------
-# Custom CSS
-# --------------------------------------------------
+# -------------------------------------------------------
+# CUSTOM CSS
+# -------------------------------------------------------
 
 st.markdown("""
 <style>
 
-.stApp{
-    background: linear-gradient(135deg,#eef4ff,#ffffff);
+.main{
+    background:#F5F7FB;
 }
 
-.main-title{
-    text-align:center;
-    padding:30px;
+.block-container{
+    padding-top:2rem;
+    padding-bottom:2rem;
+}
+
+.hero{
+    background:linear-gradient(135deg,#2563EB,#4F46E5);
     border-radius:20px;
-    background:linear-gradient(135deg,#2563eb,#4f46e5);
+    padding:45px;
     color:white;
-    margin-bottom:25px;
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.hero h1{
+    font-size:55px;
+    font-weight:700;
+}
+
+.hero p{
+    font-size:22px;
 }
 
 .card{
     background:white;
     padding:25px;
-    border-radius:18px;
-    box-shadow:0 8px 20px rgba(0,0,0,.08);
+    border-radius:20px;
+    box-shadow:0px 10px 25px rgba(0,0,0,0.08);
+    margin-bottom:20px;
 }
 
 .metric-card{
-    background:#f8fafc;
-    padding:18px;
+    background:#ffffff;
     border-radius:15px;
+    padding:20px;
     text-align:center;
-    box-shadow:0 5px 12px rgba(0,0,0,.05);
+    box-shadow:0px 5px 18px rgba(0,0,0,.08);
 }
 
 .prediction{
-    background:linear-gradient(135deg,#10b981,#22c55e);
+    background:linear-gradient(135deg,#16A34A,#22C55E);
     color:white;
-    padding:30px;
+    padding:35px;
     border-radius:20px;
     text-align:center;
-    margin-top:20px;
+    margin-top:25px;
 }
 
 .prediction h1{
-    font-size:50px;
+    font-size:52px;
 }
 
 div.stButton > button{
     width:100%;
-    border-radius:12px;
-    background:linear-gradient(90deg,#2563eb,#4f46e5);
-    color:white;
-    font-size:18px;
     height:55px;
+    background:linear-gradient(90deg,#2563EB,#4F46E5);
+    color:white;
     border:none;
+    border-radius:12px;
+    font-size:18px;
 }
 
 div.stButton > button:hover{
-    transform:scale(1.02);
+    background:#1D4ED8;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------
-# Title
-# --------------------------------------------------
+# -------------------------------------------------------
+# HERO
+# -------------------------------------------------------
 
 st.markdown("""
-<div class="main-title">
-<h1>🏡 House Price Prediction</h1>
-<p>Predict House Prices using Machine Learning (Linear Regression)</p>
+<div class="hero">
+<h1>🏠 House Price Prediction</h1>
+<p>Predict house prices using Machine Learning</p>
 </div>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------
-# Dataset Loader
-# --------------------------------------------------
-
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/mrgraciz123/dynamic_house_price_prediction/main/houseprice.csv"
+# -------------------------------------------------------
+# LOAD DATA
+# -------------------------------------------------------
 
 @st.cache_data
 def load_data():
+    return pd.read_csv("houseprice.csv")
 
-    try:
-        return pd.read_csv("houseprice.csv")
-
-    except Exception:
-
-        try:
-            return pd.read_csv(GITHUB_RAW_URL)
-
-        except Exception as e:
-            st.error("Unable to load dataset.")
-            st.exception(e)
-            st.stop()
-
-df = load_data()
-
-# --------------------------------------------------
-# Validate Dataset
-# --------------------------------------------------
-
-if "price" not in df.columns:
-
-    st.error("Dataset must contain a 'price' column.")
+try:
+    df = load_data()
+except:
+    st.error("houseprice.csv not found.")
     st.stop()
 
-# --------------------------------------------------
-# Model Training
-# --------------------------------------------------
+# -------------------------------------------------------
+# MODEL
+# -------------------------------------------------------
 
 X = df.drop("price", axis=1)
 y = df["price"]
 
 model = LinearRegression()
-model.fit(X, y)
+model.fit(X,y)
 
-feature_name = X.columns[0]
+feature = X.columns[0]
 
-# --------------------------------------------------
-# Sidebar
-# --------------------------------------------------
+# -------------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------------
 
 st.sidebar.title("📌 About")
 
-st.sidebar.success("Linear Regression Model")
+st.sidebar.success("Linear Regression")
 
 st.sidebar.write("""
-### Features
+Predict house prices based on the area of the house.
 
-- Live Prediction
-- Dataset Preview
-- Model Details
-- Responsive UI
-- Streamlit Dashboard
+Technology Used
+
+- Streamlit
+- Pandas
+- Scikit-Learn
+- Plotly
 """)
 
-# --------------------------------------------------
-# Layout
-# --------------------------------------------------
+# -------------------------------------------------------
+# TOP CARDS
+# -------------------------------------------------------
 
-left, right = st.columns([1,1])
+left,right=st.columns([1,1])
 
 with left:
 
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown('<div class="card">',unsafe_allow_html=True)
 
     st.subheader("🏠 Property Details")
 
-    area = st.slider(
-        "Select House Area (sq.ft)",
-        int(df[feature_name].min()),
-        int(df[feature_name].max()),
-        int(df[feature_name].mean()),
+    area=st.slider(
+        "Area (Square Feet)",
+        int(df[feature].min()),
+        int(df[feature].max()),
+        int(df[feature].mean()),
         100
     )
 
-    predict = st.button("Predict Price")
+    predict=st.button("Predict Price")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>",unsafe_allow_html=True)
 
 with right:
 
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown('<div class="card">',unsafe_allow_html=True)
 
     st.subheader("📊 Dataset Summary")
 
-    c1,c2,c3 = st.columns(3)
+    c1,c2,c3=st.columns(3)
 
     c1.metric("Rows",len(df))
-    c2.metric("Columns",len(df.columns))
+    c2.metric("Minimum",f"{df[feature].min():,.0f}")
     c3.metric("Average Price",f"₹ {df['price'].mean():,.0f}")
 
-    st.progress(area/df[feature_name].max())
+    st.markdown("</div>",unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --------------------------------------------------
-# Prediction
-# --------------------------------------------------
+# -------------------------------------------------------
+# PREDICTION
+# -------------------------------------------------------
 
 if predict:
 
-    prediction = model.predict([[area]])[0]
+    value=model.predict([[area]])[0]
 
     st.markdown(f"""
-    <div class='prediction'>
-        <h3>Estimated House Price</h3>
-        <h1>₹ {prediction:,.0f}</h1>
-        <p>Predicted using Linear Regression</p>
+    <div class="prediction">
+    <h2>Estimated House Price</h2>
+    <h1>₹ {value:,.0f}</h1>
+    <h4>Area : {area:,} sq.ft</h4>
     </div>
-    """, unsafe_allow_html=True)
+    """,unsafe_allow_html=True)
 
-# --------------------------------------------------
-# Model Details
-# --------------------------------------------------
+# -------------------------------------------------------
+# MODEL DETAILS
+# -------------------------------------------------------
 
 st.write("")
 
-m1,m2 = st.columns(2)
+m1,m2=st.columns(2)
 
 with m1:
 
-    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    st.markdown('<div class="metric-card">',unsafe_allow_html=True)
 
     st.metric(
         "Coefficient",
-        f"{model.coef_[0]:,.2f}"
+        f"{model.coef_[0]:.2f}"
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>",unsafe_allow_html=True)
 
 with m2:
 
-    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    st.markdown('<div class="metric-card">',unsafe_allow_html=True)
 
     st.metric(
         "Intercept",
-        f"{model.intercept_:,.2f}"
+        f"{model.intercept_:.2f}"
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>",unsafe_allow_html=True)
 
-# --------------------------------------------------
-# Dataset
-# --------------------------------------------------
+# -------------------------------------------------------
+# CHART
+# -------------------------------------------------------
+
+st.write("")
+st.subheader("📈 House Area vs Price")
+
+fig=px.scatter(
+    df,
+    x=feature,
+    y="price",
+    trendline="ols",
+    color="price",
+    template="plotly_white"
+)
+
+fig.update_layout(
+    height=500
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# -------------------------------------------------------
+# DATASET
+# -------------------------------------------------------
 
 with st.expander("📂 View Dataset"):
 
@@ -248,10 +269,10 @@ with st.expander("📂 View Dataset"):
         use_container_width=True
     )
 
-# --------------------------------------------------
-# Footer
-# --------------------------------------------------
+# -------------------------------------------------------
+# FOOTER
+# -------------------------------------------------------
 
 st.markdown("---")
 
-st.caption("Made with ❤️ using Streamlit, Pandas & Scikit-Learn")
+st.caption("Made with ❤️ using Streamlit • Pandas • Scikit-Learn • Plotly")
