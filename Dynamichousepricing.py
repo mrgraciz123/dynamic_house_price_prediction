@@ -111,7 +111,7 @@ st.markdown("""
 # Load Dataset
 # -------------------------------------------------
 
-df = pd.read_csv("houseprice.csv")
+df = pd.read_csv("https://github.com/mrgraciz123/dynamic_house_price_prediction/blob/main/houseprice.csv")
 
 X = df.drop("price", axis=1)
 y = df["price"]
